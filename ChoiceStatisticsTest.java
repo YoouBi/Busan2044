@@ -2,6 +2,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import kr.co.green.BusanUtil;
 
@@ -12,7 +14,7 @@ public class ChoiceStatisticsTest {
 	public String ChoiceStatistics(String count) { // 선택지 통계내서 이 선택을 한 사람은 몇명 있는지, 할 수 있다면 간단한 키워드까지 알려주기
 		String achv = null;
 		try (Connection conn = BusanUtil.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.statistics_choice");
+				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.statistics_destiny");
 				ResultSet rs = pstmt.executeQuery();) {
 			
 			while (rs.next()) {
@@ -28,7 +30,7 @@ public class ChoiceStatisticsTest {
 	public boolean SearchStatistics(String id) { // id 있는지 검색해서 boolean 값으로 반환
 		boolean search = false;
 		try (Connection conn = BusanUtil.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.statistics_choice");
+				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.statistics_destiny");
 				ResultSet rs = pstmt.executeQuery();) {
 			
 			while (rs.next()) {
@@ -44,9 +46,9 @@ public class ChoiceStatisticsTest {
 		return search;
 	}
 	
-	public int CreateChoice(String id) { // 유저id가 없을 때 테이블에 유저 선택지 row 만들기
+	public void CreateChoice(String id) { // 유저id가 없을 때 테이블에 유저 선택지 row 만들기
 		try (Connection conn = BusanUtil.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement("INSERT INTO  FROM Busan.statistics_choice");
+				PreparedStatement pstmt = conn.prepareStatement("INSERT INTO  FROM Busan.statistics_destiny");
 				ResultSet rs = pstmt.executeQuery();) {
 			
 			while (rs.next()) {
@@ -57,26 +59,77 @@ public class ChoiceStatisticsTest {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void Resetchoice(String id) { // 새 게임 시작할 때 혹은 엔딩 끝났을 때 유저 선택지 테이블 초기화
 		
-		return search;
 	}
 	
 	// 챕터 번호와 선택지 번호, 선택지 택한 번호 넘겨받으면 알아서 넣을 수 있게? 714
 	public void UpdateChoice(String id, int choice) { // 유저 id가 있다면 선택지 수정
-		char[] choiceChar = String.valueOf(choice).toCharArray();
+		int[] choiceArr = new int[3];
+		
+		choiceArr[0] = choice / 100;
+		choiceArr[1] = choice % 100 / 10;
+		choiceArr[2] = choice % 10;
 		
 		try (Connection conn = BusanUtil.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement("UPDATE Busan.statistics_choice SET ? = ? WHERE id = ?");) {
+				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.login_choice");
+				PreparedStatement pstmt2 = conn.prepareStatement("UPDATE Busan.login_choice SET choice? = ? WHERE id = ?");
+				ResultSet rs = pstmt.executeQuery();) {
 			
-			pstmt.setString(1, "choice" + "");
-			pstmt.setString(2, "");
+			pstmt.setInt(1, choiceArr[0]);
 			pstmt.setString(3, id);
+			
+			String chapterChoice = "";
+			while (rs.next()) {
+				if (id.equals(rs.getString("id"))) {
+					chapterChoice = rs.getString("choice" + choiceArr[0]); // 해당 챕터의 선택 내용 들고오기
+				}
+			}
+			
+			List<String> choiceList = new ArrayList<>();
+			String[] choiceValue = chapterChoice.split("/");
+			for (String s : choiceValue) {
+				choiceList.add(s);
+			}
+			System.out.println(choiceList.get(0));
+			
+			String value = "" + choiceArr[1] + choiceArr[2]; // 넣은 int choice값 중 뒤의 두자리
+			
+			int x = choiceArr[1] - 1;
+			System.out.println(choiceList.size());
+			
+			if (choiceArr[1] == 1) {
+				choiceList.set(0, value);
+			} else if (choiceArr[1] == 2) {
+				choiceList.set(1, value);
+			} else {
+				choiceList.set(x, value);
+			}
+			
+			chapterChoice = "";
+			
+			for (int i = 0; i < choiceList.size(); i++) {
+				if (i > 0) {
+					chapterChoice = chapterChoice.concat("/");
+				}
+					chapterChoice = chapterChoice.concat(choiceList.get(i));
+			}
+			
+			String chap = "choice" + String.valueOf(choiceArr[0]);
+			System.out.println(choiceArr[0]);
+			System.out.println(chap);
+			
+			pstmt.setString(2, chapterChoice);
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	public static void main(String[] args) {
-		
+		ChoiceStatisticsTest test = new ChoiceStatisticsTest();
+		test.UpdateChoice("magic22x", 721);
 	}
 }
