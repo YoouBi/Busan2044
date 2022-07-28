@@ -14,7 +14,7 @@ public class ChoiceStatisticsTest {
 	public String ChoiceStatistics(String count) { // 선택지 통계내서 이 선택을 한 사람은 몇명 있는지, 할 수 있다면 간단한 키워드까지 알려주기
 		String achv = null;
 		try (Connection conn = BusanUtil.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.statistics_destiny");
+				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.login_choice");
 				ResultSet rs = pstmt.executeQuery();) {
 			
 			while (rs.next()) {
@@ -27,14 +27,14 @@ public class ChoiceStatisticsTest {
 		return achv;
 	}
 	
-	public boolean SearchStatistics(String id) { // id 있는지 검색해서 boolean 값으로 반환
+	public boolean SearchStatistics(String id) { // id 있는지 검색해서 boolean 값으로 반환 했음!
 		boolean search = false;
 		try (Connection conn = BusanUtil.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.statistics_destiny");
+				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.login_choice");
 				ResultSet rs = pstmt.executeQuery();) {
 			
 			while (rs.next()) {
-				if(id.equals(rs.getString(id))) {
+				if(id.equals(rs.getString("id"))) {
 					search = true;
 					break;
 				}
@@ -48,12 +48,16 @@ public class ChoiceStatisticsTest {
 	
 	public void CreateChoice(String id) { // 유저id가 없을 때 테이블에 유저 선택지 row 만들기
 		try (Connection conn = BusanUtil.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement("INSERT INTO  FROM Busan.statistics_destiny");
-				ResultSet rs = pstmt.executeQuery();) {
+				PreparedStatement pstmt = conn.prepareStatement("INSERT INTO Busan.statistics_destiny "
+						+ "(id, choice1, choice2, choice3, choice4, choice5, choice6, choice7) "
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");) {
 			
-			while (rs.next()) {
-				if(id.equals(rs.getString(id))) {
-					
+			pstmt.setString(1, id);
+			for (int i = 2; i < 9; i++) { // choice1이 i = 2에 세팅됨!
+				if(i == 8) {
+					pstmt.setString(i, "10/20");
+				} else {
+					pstmt.setString(i, "10");
 				}
 			}
 		} catch (SQLException e) {
@@ -62,7 +66,25 @@ public class ChoiceStatisticsTest {
 	}
 	
 	public void Resetchoice(String id) { // 새 게임 시작할 때 혹은 엔딩 끝났을 때 유저 선택지 테이블 초기화
-		
+		try (Connection conn = BusanUtil.getConnection();
+				PreparedStatement pstmt = conn.prepareStatement("UPDATE Busan.login_choice "
+						+ "SET choice1 = ?, choice2 = ?, choice3 = ?, choice4 = ?, choice5 = ?, choice6 = ?, choice7 = ? "
+						+ "WHERE id = ?");) {
+			
+			for (int i = 1; i < 8; i++) {
+				if(i == 7) {
+					pstmt.setString(i, "10/20");
+				} else {
+					pstmt.setString(i, "10");
+				}
+			}
+			
+			pstmt.setString(8, id);
+			
+			pstmt.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	// 챕터 번호와 선택지 번호, 선택지 택한 번호 넘겨받으면 알아서 넣을 수 있게? 714
@@ -73,13 +95,14 @@ public class ChoiceStatisticsTest {
 		choiceArr[1] = choice % 100 / 10;
 		choiceArr[2] = choice % 10;
 		
+		String choiceStr = "choice" + choiceArr[0]; 
 		try (Connection conn = BusanUtil.getConnection();
 				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.login_choice");
 				PreparedStatement pstmt2 = conn.prepareStatement("UPDATE Busan.login_choice SET choice? = ? WHERE id = ?");
 				ResultSet rs = pstmt.executeQuery();) {
 			
-			pstmt.setInt(1, choiceArr[0]);
-			pstmt.setString(3, id);
+			pstmt2.setInt(1, choiceArr[0]);
+			pstmt2.setString(3, id);
 			
 			String chapterChoice = "";
 			while (rs.next()) {
@@ -93,20 +116,9 @@ public class ChoiceStatisticsTest {
 			for (String s : choiceValue) {
 				choiceList.add(s);
 			}
-			System.out.println(choiceList.get(0));
 			
 			String value = "" + choiceArr[1] + choiceArr[2]; // 넣은 int choice값 중 뒤의 두자리
-			
-			int x = choiceArr[1] - 1;
-			System.out.println(choiceList.size());
-			
-			if (choiceArr[1] == 1) {
-				choiceList.set(0, value);
-			} else if (choiceArr[1] == 2) {
-				choiceList.set(1, value);
-			} else {
-				choiceList.set(x, value);
-			}
+			choiceList.set(choiceArr[1] - 1, value);
 			
 			chapterChoice = "";
 			
@@ -121,8 +133,9 @@ public class ChoiceStatisticsTest {
 			System.out.println(choiceArr[0]);
 			System.out.println(chap);
 			
-			pstmt.setString(2, chapterChoice);
+			pstmt2.setString(2, chapterChoice);
 			
+			pstmt2.executeUpdate();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -130,6 +143,14 @@ public class ChoiceStatisticsTest {
 	
 	public static void main(String[] args) {
 		ChoiceStatisticsTest test = new ChoiceStatisticsTest();
-		test.UpdateChoice("magic22x", 721);
+		
+		if(test.SearchStatistics("magic22x")) {
+			test.Resetchoice("magic22x");
+		} else {
+			test.CreateChoice("magic22x");
+		}
+		
+//		test.UpdateChoice("magic22x", 612);
+		
 	}
 }

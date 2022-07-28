@@ -24,7 +24,7 @@ public class Statistics { // 통계 해야될게... 무슨 엔딩을 몇명이 �
 				}
 				total_headcount += rs.getInt("ending_headcount");
 			}
-			
+	
 			pstmt2.setInt(2, ending_id);
 //			pstmt2.executeUpdate();
 
