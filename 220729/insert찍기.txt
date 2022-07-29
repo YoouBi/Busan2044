@@ -1,0 +1,21 @@
+private void insertPath(String path) {
+		Connection conn = null;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+
+		list = new ArrayList<>();
+
+		try {
+			conn = BusanUtil.getConnection();
+			pstmt = conn.prepareStatement("INSERT INTO savehere(storyPath) VALUES (?)");
+			pstmt.setString(1, path);
+			
+			pstmt.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			BusanUtil.closeStmt(pstmt);
+			BusanUtil.closeConn(conn);
+		}
+
+	}
