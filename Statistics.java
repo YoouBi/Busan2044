@@ -38,7 +38,7 @@ public class Statistics { // 통계 해야될게... 무슨 엔딩을 몇명이 �
 	public static void main(String[] args) {
 		Statistics st = new Statistics();
 
-		double result = st.EndingStatistics(2);
+		double result = st.EndingStatistics(4);
 		System.out.println(result + "\n이 엔딩을 본 사람은 " + (int)(result / 10000) 
 				+ "명이고 전체의 " + result % 10000 / 100 + "% 입니다.");
 	}

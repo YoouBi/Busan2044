@@ -1,4 +1,5 @@
 
+
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -25,49 +26,19 @@ import java.util.concurrent.ExecutionException;
 import java.awt.event.ActionEvent;
 import java.awt.Font;
 
-public class StoryPnl extends JFrame {
+public class Screen extends JFrame {
 
-	public JPanel pnlBBG;
-	private UserInfo user = new UserInfo();
-	private SaveLoad sl = new SaveLoad();
 	private List<Story> list;
 	private List<ChoiceSum> choiceList;
 	private int sn = 0;
 	private int snChoice = 0;
 	private JTextArea storyArea;
 	private JButton[] btnChoice = new JButton[5]; // 버튼 처리를 위해 옮김
-	private JButton btnSave = new JButton("저장");
 	private JPanel choicePnl; // 버튼 패널 추가
 	private Random rd = new Random();
-	private List<Character> path = new ArrayList<>();
-	private List<Integer> path_c = new ArrayList<>();
-	private ItemConsole IC = new ItemConsole(new ItemDao(), user);
 
 	public static Font mainFont = new Font("한컴산뜻돋움", Font.BOLD, 20);
 	private boolean req/* requirement */ = false, bandageEv = false, stop = false;
-
-	// 선택지 기록
-	private void insertPath(String path) {
-		Connection conn = null;
-		PreparedStatement pstmt = null;
-		ResultSet rs = null;
-
-		list = new ArrayList<>();
-
-		try {
-			conn = BusanUtil.getConnection();
-			pstmt = conn.prepareStatement("INSERT INTO savehere(storyPath) VALUES (?)");
-			pstmt.setString(1, path);
-			
-			pstmt.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			BusanUtil.closeStmt(pstmt);
-			BusanUtil.closeConn(conn);
-		}
-
-	}
 
 	// btnChoice 클릭 액션 처리 메소드
 	private void storyUpdate(int btnNum) {
@@ -76,20 +47,22 @@ public class StoryPnl extends JFrame {
 		sn++;
 
 		choicePnl.setVisible(false);
-
 		switch (snChoice) {
 		case 0: {
 			storyArea.setText(getAchoice(btn).getStoryMain());
+			storyArea.setCaretPosition(0);
 			break;
 		}
 		case 1: {
 			btn += 4;
 			storyArea.setText(getAchoice(btn).getStoryMain());
+			storyArea.setCaretPosition(0);
 			break;
 		}
 		case 2: {
 			btn += 6;
 			storyArea.setText(getAchoice(btn).getStoryMain());
+			storyArea.setCaretPosition(0);
 			break;
 		}
 		case 3: {
@@ -100,11 +73,13 @@ public class StoryPnl extends JFrame {
 		case 4: {
 			btn += 13;
 			storyArea.setText(getAchoice(btn).getStoryMain());
+			storyArea.setCaretPosition(0);
 			break;
 		}
 		case 5: {
 			btn += 16;
 			storyArea.setText(getAchoice(btn).getStoryMain());
+			storyArea.setCaretPosition(0);
 			break;
 		}
 		case 6: {
@@ -114,16 +89,16 @@ public class StoryPnl extends JFrame {
 		case 7: {
 			btn += 22;
 			storyArea.setText(getAchoice(btn).getStoryMain());
+			storyArea.setCaretPosition(0);
 			break;
 		}
 		case 8: {
 			btn += 25;
 			storyArea.setText(getAchoice(btn).getStoryMain());
+			storyArea.setCaretPosition(0);
 			break;
 		}
 		}
-		path_c.add(getAchoice(btn).getChoiceId());
-		storyArea.setCaretPosition(0); // 클릭마다 커서를 젤 위로 올려 스크롤이 내려가있는 걸 방지
 	}
 
 	// choiceText에서 사용할 for문 메소드 제작
@@ -148,6 +123,7 @@ public class StoryPnl extends JFrame {
 				break;
 			}
 		}
+
 	}
 
 	// 선택지 변경 메소드
@@ -261,10 +237,10 @@ public class StoryPnl extends JFrame {
 		return list.get(selecRow);
 	}
 
-	public StoryPnl() {
+	public Screen() {
 		super("부산2044");
 		// 제일 큰 패널
-		pnlBBG = new JPanel();
+		JPanel pnlBBG = new JPanel();
 
 // --------------------------------------------
 
@@ -273,6 +249,10 @@ public class StoryPnl extends JFrame {
 		pnlTxt.setBounds(12, 10, 824, 841);
 		pnlTxt.setBorder(new LineBorder(new Color(0, 0, 0)));
 		pnlTxt.setPreferredSize(new Dimension(800, 700));
+
+		// 상태가 표시되는 패널
+		JPanel pnlState = new JPanel();
+		pnlState.setBounds(848, 10, 324, 841);
 		pnlTxt.setLayout(null);
 //		대수 추가
 		// 스크롤 추가
@@ -286,26 +266,18 @@ public class StoryPnl extends JFrame {
 		storyArea.setFont(mainFont);
 		jsp.setViewportView(storyArea);
 		storyArea.setEditable(false);
+		pnlBBG.add(pnlState);
 
 //		 클릭 시 다음 스토리 노출
 		storyArea.addMouseListener(new MouseAdapter() {
-
 			@Override
 			public void mousePressed(MouseEvent e) {
-				System.out.println(user.getHp() + "  " + user.getMental());
 				try {
-					storyArea.setText(getAstory(sn).getStoryMain());
-					if (sn == 23) {
-						for(int i = 0; i < 2; i++) {
-							IC.getItem(10);
-							IC.getItem(13);
-							IC.getItem(19);
-						}
-						System.out.println(user.getInventory());
-					}
 					if (snChoice == 3 || snChoice == 6) {
 						snChoice++;
 					}
+
+					storyArea.setText(getAstory(sn).getStoryMain());
 
 					if (getAstory(sn).getCheck() != null && getAstory(sn).getCheck().equals("선택지")) {
 						choiceText(snChoice);
@@ -324,18 +296,86 @@ public class StoryPnl extends JFrame {
 						stop = false;
 						sn--;
 					}
-//					System.out.println(sn + "\t" + snChoice);
 				} catch (IndexOutOfBoundsException ex) {
 					storyArea.setText(
 							"\n\n\n\n\n\t\tT\n\t\tH\n\t\tA\n\t\tN\n\t\tK\n\n\t\tU\n\t\n\t                    for playing !");
-					System.out.println("선택지 " + path.toString());
-					System.out.println("choiceId " + path_c.toString());
-//					insertPath(path_c.toString());
 				} finally {
-					storyArea.setCaretPosition(0); // 클릭마다 커서를 젤 위로 올려 스크롤이 내려가있는 걸 방지
+					storyArea.setCaretPosition(0);
 				}
 			}
 		});
+//		대수 추가
+
+// --------------------------------------------
+
+		// 메뉴 버튼
+		JButton menu;
+		menu = new JButton("메뉴");
+		menu.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+			}
+		});
+		menu.setBounds(243, 10, 69, 71);
+
+		// 현재상태 표시되는 곳
+		JPanel state = new JPanel();
+		state.setBounds(12, 101, 300, 160);
+		JLabel stateSet;
+		stateSet = new JLabel("상태들은 여기에 표시");
+		stateSet.setBounds(66, 41, 186, 15);
+
+		// 시간 표시되는 부분
+		JPanel time = new JPanel();
+		time.setBounds(12, 10, 217, 81);
+		JLabel timeSet;
+		timeSet = new JLabel("낮 밤 표시");
+		timeSet.setBounds(57, 25, 106, 15);
+
+		// 인벤토리
+		JPanel inven = new JPanel();
+		inven.setBounds(12, 271, 300, 384);
+		JLabel weight;
+		weight = new JLabel("무게");
+		weight.setBounds(35, 10, 73, 27);
+		JLabel invenSet;
+		invenSet = new JLabel("인벤토리 여기에 표시");
+		invenSet.setBounds(45, 173, 174, 15);
+
+		// 동료
+		JPanel team = new JPanel();
+		team.setBounds(12, 665, 300, 166);
+
+		// 우리 할머니는 항상 고정 1번
+		JLabel team1;
+		team1 = new JLabel("할머니");
+		team1.setBounds(32, 56, 69, 15);
+
+		JLabel team2;
+		team2 = new JLabel("조원1");
+		team2.setBounds(113, 56, 53, 15);
+
+		JLabel team3;
+		team3 = new JLabel("조원2");
+		team3.setBounds(178, 56, 80, 15);
+
+		pnlState.setLayout(null);
+		pnlState.add(menu);
+		pnlState.add(state);
+		pnlState.add(time);
+		pnlState.add(inven);
+		pnlState.add(team);
+		state.setLayout(null);
+
+		state.add(stateSet);
+		time.setLayout(null);
+		time.add(timeSet);
+		inven.setLayout(null);
+		inven.add(invenSet);
+		inven.add(weight);
+		team.setLayout(null);
+		team.add(team1);
+		team.add(team2);
+		team.add(team3);
 
 		pnlBBG.setLayout(null);
 		pnlBBG.add(pnlTxt);
@@ -355,22 +395,10 @@ public class StoryPnl extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				choiceText(snChoice);
 				storyUpdate(1);
-				if (snChoice == 0) {
-					user.mentalRefresh("down", 1);
-				} else if (snChoice == 2) {
-					IC.getItem(8);
-				} else if (snChoice == 5) {
-					System.out.println("출혈에 걸렸다!" + user.getBleed());
-				} else if (snChoice == 8) {
-					user.mentalRefresh("down", 1);
-					System.out.println("강아지");
-				}
-				
 				if (snChoice == 7) {
 					stop = true;
 				}
 				snChoice++;
-				path.add('1');
 			}
 		});
 
@@ -384,17 +412,10 @@ public class StoryPnl extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				choiceText(snChoice);
 				storyUpdate(2);
-				if (snChoice == 2) {
-					IC.getItem(7);
-				} else if (snChoice == 4) {
-					user.HPRefresh("down", 10);
-				} 
 				if (snChoice == 7) {
 					storyArea.setText(getAchoice(24).getStoryMain());
-				}  
+				}
 				snChoice++;
-				path.add('2');
-				storyArea.setCaretPosition(0); // (아니야! 뭔가 이상해...) 선택지 선택
 			}
 		});
 
@@ -408,14 +429,7 @@ public class StoryPnl extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				choiceText(snChoice);
 				storyUpdate(3);
-				if (snChoice == 0) {
-					user.mentalRefresh("down", 1);
-				} else if (snChoice == 5) {
-					user.HPRefresh("down", 1);
-				}
 				snChoice++;
-				path.add('3');
-				
 			}
 		});
 
@@ -429,19 +443,7 @@ public class StoryPnl extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				choiceText(snChoice);
 				storyUpdate(4);
-				if (snChoice == 0) {
-					user.mentalRefresh("up", 1);
-					IC.getItem(16);
-				} else if (snChoice == 2) {
-					IC.getItem(2);
-					System.out.println(user.getInventory());
-				} else if (snChoice == 5) {
-					user.mentalRefresh("down", 10);
-				}
-				
-				
 				snChoice++;
-				path.add('4');
 			}
 		});
 
@@ -456,17 +458,9 @@ public class StoryPnl extends JFrame {
 				choiceText(snChoice);
 				storyUpdate(5);
 				snChoice++;
-				path.add('5');
 			}
 		});
 
-		btnSave.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) { // 스탯 저장할 때 아이디 없으면 생성되도록  만들어야함
-				sl.saveMyDB("magic22x");
-			}
-		});
-		
 		choicePnl.setVisible(false);
 //			선택지 끝
 
@@ -478,7 +472,6 @@ public class StoryPnl extends JFrame {
 	}
 
 	public static void main(String[] args) {
-		new StoryPnl().setVisible(true);
-		
+		new Screen().setVisible(true);
 	}
 }
