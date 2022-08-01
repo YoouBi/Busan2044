@@ -1,12 +1,13 @@
-
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -18,11 +19,27 @@ import kr.co.green.BusanUtil;
 // 업적은 개인 배열로 꺼낼 수 있게 01(칭호'??')/03(칭호'??')
 
 // TODO 무슨무슨 업적 있는지 한글로 꺼내는 메소드,
-
+class Achv {
+	String achvName;
+	String achvText;
+	
+	public Achv(String achvName, String achvText) {
+		super();
+		this.achvName = achvName;
+		this.achvText = achvText;
+	}
+}
 
 // TODO 개인 업적 테이블도 생성해줘야함!!!!!!!!!!!!!!
 // 업적 id만 치면 무슨 업적인지 나오는 메소드...
 public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입력하고 꺼낼 때 업적 String 변환 메소드	
+	// String을 String[]로 바꿔서 반환하는 메소드
+	public String[] strSlashArr(String str) {
+		String[] StingArr = str.split("/");
+		
+		return StingArr;
+	}
+	
 	// 나눈 String[] 배열에서 원하는 값이 있는지 검색하는 메소드
 	public boolean searchArr(String[] strArr, int num) {
 		boolean search = false;
@@ -36,9 +53,17 @@ public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입�
 		return search;
 	}
 	
+	// savehere에 저장된 path를 ,만 빼고 [ ] 다 삭제해서 배열로 뱉어내는 메소드
+	public String[] saveArr(String save) {
+		save = save.replace(" ", "").replace("[", "").replace("]", "");
+		String[] saveArr = save.split(",");
+		
+		return saveArr;
+	}
+	
 	// 가져온 value 스트링을 set으로 변환하고 int값 더해서 다시 arraylist로 정렬해서 String으로 뱉어내는 메소드 작성
 	public String arraysValue(String value, int plus) {
-		String[] valueArr = value.split("/");
+		String[] valueArr = strSlashArr(value);
 		Set<Integer> valueSet = new HashSet<>();
 		
 		for (int i = 0; i < valueArr.length; i++) {
@@ -47,7 +72,7 @@ public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입�
 		
 		valueSet.add(plus);
 		List<Integer> valueList = new ArrayList<>(valueSet);
-		Arrays.asList(valueList);
+		Collections.sort(valueList);
 		
 		value = "";
 		
@@ -62,41 +87,81 @@ public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입�
 		return value;
 	}
 	
-	public void addAchv(String id) { // 회차 끝나고 player_info 확인 후 업적 있으면 업적 테이블에 더해주기
-		String AchvStr = "";
-		String[] arr = null;
-		
+	public void addAchv(String id) { // 회차 끝나고 player_info 확인 후 업적 있으면 업적 테이블에 더해주고 이번 회차에 업적 추가되었는지 배열 반환
+		String[] original = null;
+		String[] addAchv = null;
 		try (Connection conn = BusanUtil.getConnection();
 				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.player_info");
-				PreparedStatement pstmt2 = conn.prepareStatement("UPDATE Busan.player_info SET yourAchv = ? WHERE id = ?");
 				ResultSet rs = pstmt.executeQuery();) {
 			
 			while(rs.next()) {
-				if(id.equals(rs.getString("id"))) {
+				if(id.equals(rs.getString("id"))) { // 차라리 리스트 정렬을 해놨으니 배열 String이 포함되는지 확인하자
+					original = strSlashArr(rs.getString("yourAchv"));
+					
 					// 동료 다 모았을 때 업적 추가
-					arr = rs.getString("yourAttainment").split("/");
-					if(searchArr(arr, 7907) 
-							&& searchArr(arr, 7908)
-							&& searchArr(arr, 7909)
-							&& searchArr(arr, 7910)
-							&& searchArr(arr, 7911)) {
+					String attainment = rs.getString("yourAttainment");
+					if(attainment.contains("7907/7908/7909/7910/7911")) {
 						addPlayerInfo(id, "yourAchv", 4);
 					}
 					
+					// 모든 적 다 봤을 때 업적 추가
+					if(attainment.contains("10/11/12/13/21/22/24/31/32")) {
+						addPlayerInfo(id, "yourAchv", 5);
+					}
+					
 					// 엔딩 다 봤을 때 업적 추가
-					if("1/2/3/4/5/6/7".equals(rs.getString("yourEnding"))) { // TODO 되는지 확인하기
+					if("1/2/3/4/5/6/7/8".equals(rs.getString("yourEndings"))) { // TODO 되는지 확인하기
 						addPlayerInfo(id, "yourAchv", 6);
 					}
+					
+					if(rs.getInt("yourZombiDeath") == 99) {
+						addPlayerInfo(id, "yourAchv", 3);
+					}
+					
+					addAchv = strSlashArr(rs.getString("yourAchv"));
 				}
 			}
-			
-			pstmt2.setString(1, AchvStr);
-			pstmt2.setString(2, id);
-			
-			pstmt2.executeUpdate();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		
+		// 배열 비교해서 없는거 뱉어야함
+	}
+	
+	public Map<Integer, Achv> haveAchvMap(String id) { // 업적 꺼내는 메소드 TODO
+		Map<Integer, Achv> achvMap = new HashMap<>();
+		String[] saveEnding = null;
+		try (Connection conn = BusanUtil.getConnection();
+				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.achievements_table");
+				PreparedStatement pstmt2 = conn.prepareStatement("SELECT * FROM Busan.player_info");
+				ResultSet rs = pstmt.executeQuery();
+				ResultSet rs2 = pstmt2.executeQuery();){
+			
+			// 맵 만들어서 비교해서 텍스트 꺼내자
+			while (rs2.next()) {
+				if(id.equals(rs2.getInt("id"))) {
+					saveEnding = saveArr(rs2.getString("yourEndings"));
+				}
+			}
+			
+			while (rs.next()) {
+				for (int i = 1; i < 9; i++) {
+					if (searchArr(saveEnding, i)) {
+						if(i == rs.getInt("AchvId")) {
+							achvMap.put(i, new Achv(rs.getString("AchvName"), rs.getString("AchvText")));
+						}
+					} else {
+						if(i == rs.getInt("AchvId")) {
+							achvMap.put(i, new Achv("??", rs.getString("AchvHint")));
+						}
+					}
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return achvMap;
 	}
 	
 	public double countCrossrode(String id) { // 선택지 넣어서 통계
@@ -111,6 +176,7 @@ public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입�
 		boolean havePath1 = false;
 		boolean havePath2 = false;
 		boolean saveMe = false;
+		boolean notPInfo = false;
 		
 		String yourSave1 = "";
 		String yourSave2 = "";
@@ -122,7 +188,7 @@ public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입�
 				PreparedStatement pstmt4 = conn.prepareStatement("INSERT INTO statistics_crossrode(storyPath1, storyPath2, headCount) VALUES (?, ?, 1)");
 				// 업적 달성 조건과 업적 업로드
 				PreparedStatement pstmt5 = conn.prepareStatement("SELECT * FROM Busan.player_info");
-				PreparedStatement pstmt6 = conn.prepareStatement("INSERT INTO player_info(id) VALUES " + id);
+				PreparedStatement pstmt6 = conn.prepareStatement("INSERT INTO player_info(id) VALUES (?)");
 				// TODO 메소드 나누기
 				ResultSet rs = pstmt.executeQuery();
 				ResultSet rs2 = pstmt2.executeQuery();
@@ -135,22 +201,25 @@ public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입�
 				}
 			}
 			
-			yourSave1 = yourSave1.replace(" ", "").replace("[", "").replace("]", "");
-			yourSave2 = yourSave2.replace(" ", "").replace("[", "").replace("]", "");
-			String[] saveArr1 = yourSave1.split(",");
-			String[] saveArr2 = yourSave2.split(",");
+			String[] saveArr1 = saveArr(yourSave1);
+			String[] saveArr2 = saveArr(yourSave2);
 
 			while (rs3.next()) {
-				if(!(id.equals(rs3.getString("id")))) {
-					pstmt6.executeUpdate();
-				} else {
-					for (int i = 0; i < saveArr1.length; i++) {
-						if (7 <= Integer.valueOf(saveArr1[i]) && Integer.valueOf(saveArr1[i]) <= 11) { // 7907 조건으로 추가
-							addPlayerInfo(id, "yourAttainment", 7900 + Integer.valueOf(saveArr1[i]));
-						}
-						if (Integer.valueOf(saveArr1[i]) == 12) { // 개죽음 업적 추가
-							addPlayerInfo(id, "yourAchv", 1);
-						}
+				if(id.equals(rs3.getString("id"))) {
+					notPInfo = true;
+				}
+			}
+			
+			if(!notPInfo) {
+				pstmt6.setString(1, id);
+				pstmt6.executeUpdate();
+			} else {
+				for (int i = 0; i < saveArr1.length; i++) {
+					if (7 <= Integer.valueOf(saveArr1[i]) && Integer.valueOf(saveArr1[i]) <= 11) { // 업적 조건의 동료 획득 추가
+						addPlayerInfo(id, "yourAttainment", 7900 + Integer.valueOf(saveArr1[i]));
+					}
+					if (Integer.valueOf(saveArr1[i]) == 12) { // 개죽음 업적 추가
+						addPlayerInfo(id, "yourAchv", 1);
 					}
 				}
 			}
@@ -229,47 +298,109 @@ public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입�
 		return statis;
 	}
 	
+	public String thisRoundParty(String id) { // 이번회차 동료 누구와 함께했는지
+		String[] path1 = null;
+		List<String> party = new ArrayList<>();
+		String partyStr = "";
+		
+		try (Connection conn = BusanUtil.getConnection();
+				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.savehere");
+				ResultSet rs = pstmt.executeQuery();) {
+			
+			while (rs.next()) {
+				if(id.equals(rs.getString("userId"))) {
+					path1 = saveArr(rs.getString("storyPath1"));
+					
+					if(searchArr(path1, 7)) {
+						party.add("장주먹 할아버지");
+					}
+					
+					if(searchArr(path1, 8)) {
+						party.add("전판례 할머니");
+					}
+					
+					if(searchArr(path1, 9)) {
+						party.add("도독놈 아저씨");
+					}
+					
+					if(searchArr(path1, 10)) {
+						party.add("고모리");
+					}
+					
+					if(searchArr(path1, 11)) {
+						party.add("한은둔 할아버지");
+					}
+				}
+			}
+			
+			for (int i = 0; i < party.size(); i++) {
+				if (i == 0) {
+					partyStr = partyStr.concat("" + party.get(i));
+				} else {
+					partyStr = partyStr.concat(", " + party.get(i));
+				}
+			}
+
+			System.out.println("현재 회차에서 얻은 파티원은 " + partyStr);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return partyStr;
+	}
+	
 	// 엔딩 시 자동 업로드가 아닌 직접 입력해야하는 조건, 엔딩, 승리횟수, 업적 추가할 때 쓰는 메소드
 	// 개인 DB에 업적 추가해서 중복은 없애고(set) 순서대로 정렬하는(arraylist) 메소드
-	public void addPlayerInfo(String id, String column, int plus) { //TODO 승리횟수 추가해야함!
+	public void addPlayerInfo(String id, String column, int plus) { //TODO 승리횟수 추가함!
 		String columnQuery = "UPDATE Busan.player_info SET "+ column +" = ? WHERE id = ?";
-//		String query2 = "UPDATE Busan.player_info SET yourEndings = ? WHERE id = ?";
-//		String query3 = "UPDATE Busan.player_info SET yourAchv = ? WHERE id = ?";
 		
-//		if(column.equals("yourAttainment")) {
-//			columnQuery = query1;
-//		} else if(column.equals("yourEndings")) {
-//			columnQuery = query2;
-//		} else if(column.equals("yourAchv")) {
-//			columnQuery = query3;
-//		}
+		// (id, "yourZombiDeath", 죽은 횟수1) {	// 좀비에게 죽었을 때
+		// (id, "yourAttainment", 10 -> 적의 id 번호); // 얘는 적 마주칠때
+		// (id, "yourAch", 8) -> 멧돼지 긁었을 때  // 효자손 스킬 발동 직후
+		
+		// (id, "yourAch", 1) -> 변기에 머리 박아서 개죽음 당한 스크립트가 뜰때! 이 메소드 씀
+		// (id, "yourAch", 2) -> 확률적으로 스토리상 좀비 할머니가 우리 할머니 물어뜯고 나까지 물어뜯는 스트립트가 뜰 때!
+		// (id, "yourAch", 7) -> 확률적으로 뜬 이벤트 GM에게 죽임을 당했을 때!
 		
 		String value = null;
+		int victory = 0;
 		
 		try (Connection conn = BusanUtil.getConnection();
 				PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Busan.player_info");
 				PreparedStatement pstmt2 = conn.prepareStatement(columnQuery);
 				ResultSet rs = pstmt.executeQuery();) {
 			
+			boolean arrColumn = column.equals("yourAttainment") || column.equals("yourEndings") || column.equals("yourAchv");
+			
 			while (rs.next()) {
 				if(id.equals(rs.getString("id"))) {
-					if (column.equals("yourAttainment") || column.equals("yourEndings") || column.equals("yourAchv")) {
+					if (arrColumn) {
 						value = rs.getString(column);
+						
+						if(value.equals("") || value == null) { // 널값일 때 그냥 plus
+							pstmt2.setString(1, String.valueOf(plus));
+						} else {
+							pstmt2.setString(1, arraysValue(value, plus));
+						}
+					} else if (column.equals("yourZombiDeath")) { // 전투 승리 카운트 메소드
+						victory = rs.getInt(column);
+						
+						if(victory == 0) {
+							pstmt2.setInt(1, plus);
+						} else {
+							pstmt2.setInt(1, victory + plus);
+						}
+						
 					}
 				}
 			}
 			
-//			pstmt2.setString(1, column);
-			pstmt2.setString(1, arraysValue(value, plus));
 			pstmt2.setString(2, id);
-			
 			pstmt2.executeUpdate();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	// 전투 승리 카운트 메소드
 	
 	public String searchAchv(String AchvId) { // 업적 검색해서 String으로 반환하는 메소드
 		String achv = "";
@@ -299,16 +430,11 @@ public class AchievementsTest { // 업적 달성 // login_info에 숫자로 입�
 	
 	public static void main(String[] args) {
 		AchievementsTest ac = new AchievementsTest();
-//		double result = ac.countCrossrode("eeee");
+//		double result = ac.countCrossrode("magic22x");
 		
-		ac.addPlayerInfo("magic22x", "yourEndings", 5);
-		
-//		System.out.println(ac.haveCrossrode("magic22x"));
-//		if(ac.haveCrossrode("magic22x")) {
-//			
-//		} else {
-//			ac.addCrossrode("2/4/5/", "2/4/6");
-//		}
+//		ac.addPlayerInfo("magic22x", "yourEndings", 5);
+		System.out.println(ac.haveAchvMap("magic22x").get(1));
+
 //		System.out.println(result + "\n당신과 같은 선택을 한 사람은 " + (int)(result / 10000) 
 //				+ "명이고 전체의 " + result % 10000 / 100 + "%가 이 선택을 했습니다.");
 	}
